@@ -1,7 +1,8 @@
 const router = require("express").Router();
 const { google } = require("googleapis");
 const passport = require("passport");
-const passportMiddleware = require("auth/passportMiddleware.js");
+const passportMiddleware = require("../auth/passportMiddleware.js");
+require("../auth/passport.js")(passport);
 
 const GOOGLE_CALENDAR_SCOPES = [
   "https://www.googleapis.com/auth/calendar.events.readonly",
@@ -21,11 +22,13 @@ Flow is user authentication on front-end
 */
 
 router
-  .route("/calendar")
+  .route("/list-events")
   .get(
     passport.authenticate("google", { scope: GOOGLE_CALENDAR_SCOPES }),
     passportMiddleware,
-    function (req, res) {}
+    function (req, res) {
+      console.log(req);
+    }
   );
 
 function listEvents(auth) {
