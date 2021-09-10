@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { gapi } from "gapi-script";
 
 function App() {
-  const clientId =
-    "165194383544-aiqotfhsn1v8tt36ljvegalvp0vhscri.apps.googleusercontent.com";
   const scopes =
     "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.app.created";
 
@@ -15,7 +13,7 @@ function App() {
     gapi.load("client:auth2", () => {
       gapi.client.init({
         apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-        clientId: clientId,
+        clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID,
         discoveryDocs: [
           "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
         ],
