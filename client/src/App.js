@@ -1,92 +1,109 @@
 import "./App.css";
 
-import { useState } from "react";
-import { GoogleLogin, GoogleLogout } from "react-google-login";
-import gapi from "gapi-client";
+import { useState, useEffect } from "react";
+import { gapi } from "gapi-script";
 
 function App() {
-  const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
+  const apiKey = "AIzaSyAcXZHw_DSsfRC7arFms2t_Yps7CnOXmpU";
+  const clientId =
+    "165194383544-aiqotfhsn1v8tt36ljvegalvp0vhscri.apps.googleusercontent.com";
+  const scopes =
+    "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.app.created";
 
-  const handleNotionSubmit = async () => {
-    console.log(JSON.stringify({ title: title, notes: notes }));
-    const response = await fetch("/api/addPrinciple", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ title: title, notes: notes }),
+  const [prototypeEventLink, setPrototypeEventLink] = useState(0);
+
+  useEffect(() => {
+    gapi.load("client:auth2", () => {
+      gapi.client.init({
+        apiKey: apiKey,
+        clientId: clientId,
+        discoveryDocs: [
+          "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
+        ],
+        scope: scopes,
+      });
     });
-    console.log(response);
-  };
+  }, []);
 
-  /*
-  function listUpcomingEvents() {
-        gapi.client.calendar.events.list({
-          'calendarId': 'primary',
-          'timeMin': (new Date()).toISOString(),
-          'showDeleted': false,
-          'singleEvents': true,
-          'maxResults': 10,
-          'orderBy': 'startTime'
-        }).then(function(response) {
-          var events = response.result.items;
-          appendPre('Upcoming events:');
+  function prototypeCalendarFunction() {
+    gapi.client.calendar.events
+      .list({
+        calendarId: "primary",
+        timeMin: new Date().toISOString(),
+        showDeleted: false,
+        singleEvents: true,
+        maxResults: 1,
+        orderBy: "startTime",
+      })
+      .then(function (response) {
+        const events = response.result.items;
+        const event = events[0];
+        const newEvent = {
+          summary: "Power-pose",
+          description: `Reminder to power-pose when attending ${event.summary}`,
+          location: event.location,
+          start: event.start,
+          end: event.end,
+          reminders: { useDefault: true },
+        };
 
-          if (events.length > 0) {
-            for (i = 0; i < events.length; i++) {
-              var event = events[i];
-              var when = event.start.dateTime;
-              if (!when) {
-                when = event.start.date;
-              }
-              appendPre(event.summary + ' (' + when + ')')
-            }
-          } else {
-            appendPre('No upcoming events found.');
-          }
-        });
-      }
-  */
+        gapi.client.calendar.events
+          .insert({
+            calendarId: "primary",
+            resource: newEvent,
+          })
+          .execute((event) => {
+            setPrototypeEventLink(event.htmlLink);
+            console.log(event.htmlLink);
+          });
 
-  const responseGoogle = (response) => {
-    console.log(response);
-  };
+        console.log(events);
+      });
+  }
+
+  function handleAuthSignin(action) {
+    gapi.auth2
+      .getAuthInstance()
+      .signIn()
+      .then(() => {
+        console.log("Signing in");
+        switch (action) {
+          case "prototype":
+            prototypeCalendarFunction();
+            break;
+          default:
+            console.log("Signed in");
+        }
+      });
+  }
+
+  function handleAuthSignout() {
+    gapi.auth2
+      .getAuthInstance()
+      .signOut()
+      .then(() => console.log("Signing out"));
+  }
 
   return (
     <div className="App">
       <div>
-        <h4>Sick demo principles</h4>
-        <label>Principle title</label>
-        <input
-          type="text"
-          name="principleTitle"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <label>Principle notes</label>
-        <input
-          type="text"
-          name="principleNotes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-        <button disabled onClick={() => handleNotionSubmit}>
-          Add Principle
-        </button>
+        <h4>Google Calendar Login and Authentication</h4>
       </div>
       <div>
-        <h4>Google Calendar Login and Authentication</h4>
-        <GoogleLogin
-          clientId="165194383544-aiqotfhsn1v8tt36ljvegalvp0vhscri.apps.googleusercontent.com"
-          buttonText="Login"
-          onSuccess={responseGoogle}
-          onFailure={responseGoogle}
-          cookiePolicy={"single_host_origin"}
-          scopes={
-            "https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.app.created"
-          }
-        />
+        <button onClick={() => handleAuthSignin("prototype")}>
+          GAPI Sign-in and prototype execution
+        </button>
+        <button onClick={() => handleAuthSignout()}>GAPI Sign-out</button>
+      </div>
+      <div>
+        {prototypeEventLink ? (
+          <p>
+            New event here:{" "}
+            <a href={prototypeEventLink}>{prototypeEventLink}</a>
+          </p>
+        ) : (
+          <div />
+        )}
       </div>
     </div>
   );
